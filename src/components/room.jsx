@@ -2,12 +2,11 @@ import React from "react";
 import { useState, useEffect } from "react";
 import AxiosInstance from "../conf/axiosConfig";
 import RoomParticipant from "./roomParticipant";
-
+import { Button } from "@mui/material";
 
 const Room = ({ room, user }) => {
     const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`
     const [participants, setParticipants] = useState([])
-
 
     useEffect(() => {
         console.log('participant len: ', room.participants.participants.length)
@@ -47,6 +46,8 @@ const Room = ({ room, user }) => {
         }
     }
 
+    
+
     return (
         <div>
             <p>Room ID: {room.id}</p>
@@ -64,8 +65,8 @@ const Room = ({ room, user }) => {
                     })
                 }
             </ul>
-            <button onClick={() => joinRoom(room.id, user.id)}>Join</button>{' '}
-            <button onClick={() => leaveRoom(room.id, user.id)}>Leave</button>{' '}
+            <Button onClick={() => joinRoom(room.id, user.id)}>Join</Button>
+            <Button onClick={() => leaveRoom(room.id, user.id)}>Leave</Button>
         </div>
     )
 

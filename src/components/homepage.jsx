@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import AxiosInstance from '../conf/axiosConfig'
 import Room from './room'
 import CreateRoomForm from './createRoomForm'
+import { Container } from '@mui/material'
+import InRoomOperations from './inRoomOperations'
 
 const Home = () => {
     const [activeRooms, setActiveRooms] = useState([])
@@ -32,20 +34,23 @@ const Home = () => {
     }
 
     return (
-        <div>
+        <Container>
             <h3>Active rooms</h3>
             <CreateRoomForm user={user} onRoomCreated={handleRoomCreated}></CreateRoomForm>
             <ul>
                 {
                     activeRooms.map(room =>
-                        <li key={room.id}>
-                            <Room room={room} user={user}>
-                            </Room>
-                        </li>
+                        <Container>
+                            <li key={room.id}>
+                                <Room room={room} user={user}>
+                                </Room>
+                            </li>
+                            <InRoomOperations></InRoomOperations>
+                        </Container>
                     )
                 }
             </ul>
-        </div>
+        </Container>
     )
 }
 
