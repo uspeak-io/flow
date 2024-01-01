@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import AxiosInstance from '../conf/axiosConfig'
 import Room from './room'
+import CreateRoomForm from './createRoomForm'
 
 const Home = () => {
     const [activeRooms, setActiveRooms] = useState([])
@@ -8,7 +9,7 @@ const Home = () => {
         "id": 69,
         "displayName": "namvdo"
     })
-    const ENDPOINT = `${process.env.REACT_APP_SLIGHT_ENDPOINT}/api/v1/rooms/`;
+    const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
     useEffect(() => {
         fetchAllActiveRooms()
     }, [])
@@ -16,17 +17,24 @@ const Home = () => {
 
     const fetchAllActiveRooms = async () => {
         try {
-            const response = await AxiosInstance.get(`${ENDPOINT}`)
-            console.log('response: ', response.data.payload.rooms);
-            setActiveRooms(response.data.payload.rooms)
+            console.log('endpoint: ', endpoint)
+            const response = await AxiosInstance.get(endpoint + "/")
+            const rooms = response.data.payload.rooms
+            console.log('rooms: ', rooms);
+            setActiveRooms(rooms)
         } catch (error) {
             console.log('error while fetching active rooms', error)
         }
     }
 
+    const handleRoomCreated = (newRoom) => {
+        setActiveRooms([...activeRooms, newRoom])
+    }
+
     return (
         <div>
             <h3>Active rooms</h3>
+            <CreateRoomForm user={user} onRoomCreated={handleRoomCreated}></CreateRoomForm>
             <ul>
                 {
                     activeRooms.map(room =>
