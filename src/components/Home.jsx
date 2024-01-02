@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import AxiosInstance from '../conf/axiosConfig'
-import Room from './room'
-import CreateRoomForm from './createRoomForm'
-import { Container } from '@mui/material'
-import InRoomOperations from './inRoomOperations'
+import Room from './Room'
+import CreateRoomForm from './CreateRoomForm'
+import { Box, Container } from '@mui/material'
+import InRoomOperations from './InRoomOperations'
+import MediaStreamPanel from './Conference'
+import { useLocation } from 'react-router-dom'
+import Conference from './Conference'
+import RoomPreview from './RoomPreview'
 
 const Home = () => {
     const [activeRooms, setActiveRooms] = useState([])
-    const [user, setUser] = useState({
-        "id": 69,
-        "displayName": "namvdo"
-    })
+    const [user, setUser] = useState(null)
+    const location = useLocation()
     const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
     useEffect(() => {
+        const user = location.state.user
+        setUser(user)
         fetchAllActiveRooms()
     }, [])
 
@@ -35,21 +39,19 @@ const Home = () => {
 
     return (
         <Container>
-            <h3>Active rooms</h3>
+            {
+                user && (
+                    <Box component={"div"} style={{ textAlign: 'right' }}><strong>{user.username}</strong></Box>
+                )
+            }
+            <Box component={"div"} style={{ textAlign: 'left' }}><strong>Active</strong></Box>
             <CreateRoomForm user={user} onRoomCreated={handleRoomCreated}></CreateRoomForm>
-            <ul>
-                {
-                    activeRooms.map(room =>
-                        <Container>
-                            <li key={room.id}>
-                                <Room room={room} user={user}>
-                                </Room>
-                            </li>
-                            <InRoomOperations></InRoomOperations>
-                        </Container>
-                    )
-                }
-            </ul>
+            {
+                activeRooms.map(room =>
+                        <RoomPreview room={room} user={user}>
+                        </RoomPreview>
+                )
+            }
         </Container>
     )
 }
