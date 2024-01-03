@@ -2,22 +2,24 @@ import React from "react";
 import { useState, useEffect } from "react";
 import AxiosInstance from "../conf/axiosConfig";
 import RoomParticipant from "./RoomParticipant";
-import { Button, CardMedia, Container } from "@mui/material";
+import { Button, Typography, Container, Card} from "@mui/material";
 import MediaStreamPanel from "./Conference";
 import Conference from "./Conference";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import RoomParticipantList from "./RoomParticipantList";
 
 const Room = () => {
     const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`
     const navigate = useNavigate()
-    const { room, user} = useLocation().state 
+    const { room, user, participants} = useLocation().state
+    const [ activeParticipants, setActiveParticipants] = useState([])
     const roomId = useParams()
-    const [participants, setParticipants] = useState([])
 
     useEffect(() => {
-        console.log('participant len: ', room.participants.participants.length)
-        setParticipants(room.participants.participants)
-    }, [room])
+        const ps = participants
+        console.log('whatsup bro: ', ps)
+        setActiveParticipants(ps)
+    }, [activeParticipants])
 
 
     const leaveRoom = async (roomId, userId) => {
@@ -31,7 +33,7 @@ const Room = () => {
             const p = response.data.payload
             console.log('leave participant: ', p)
             const updatedParticipants = participants.filter(e => e.userId !== p.userId)
-            setParticipants([...updatedParticipants])
+            setActiveParticipants([...updatedParticipants])
             navigate("/", {
                 state: {
                     user,
@@ -49,23 +51,24 @@ const Room = () => {
         <Container>
             {room && (
                 <Container>
-                    <p>Room ID: {room.id}</p>
-                    <p>Room topic: {room.topic}</p>
-                    <p>Size: {room.size}</p>
-                    <h4>Participants:</h4>
-                    <ul>
-                        {
-                            participants.map(p => {
-                                return (
-                                    <li key={p.userId}>
-                                        <RoomParticipant participant={p}></RoomParticipant>
-                                    </li>
-                                );
+                    <Typography fontWeight="bold">Room ID: {room.id}</Typography>
+                    <Typography fontWeight="bold">Room topic: {room.topic}</Typography>
+                    <Typography fontWeight="bold">Size: {room.size}</Typography>
+                    <Typography fontWeight="bold">Participants:</Typography>
+                    {
+                        activeParticipants && (
+                            activeParticipants.map(participant => {
+                                return (<Card key={participant.userId}>
+                                    <Typography>User id: {participant.userId}</Typography>
+                                    <Typography>Is host: {participant.isHost.toString()}</Typography>
+                                    <Typography>Joined at: {participant.joinedAt}</Typography>
+                                </Card>)
                             })
-                        }
-                    </ul>
+                        )
+                    }
+                    <Typography>Remote streams: </Typography>
                     <Conference room={room} user={user}></Conference>
-                    <Button onClick={() => leaveRoom(roomId.roomId, user.id)}>Leave</Button>
+                    <Button variant="contained" onClick={() => leaveRoom(roomId.roomId, user.id)}>Leave</Button>
                 </Container>
             )}
         </Container>

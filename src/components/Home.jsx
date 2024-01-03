@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react'
 import AxiosInstance from '../conf/axiosConfig'
 import Room from './Room'
 import CreateRoomForm from './CreateRoomForm'
-import { Box, Container } from '@mui/material'
-import InRoomOperations from './InRoomOperations'
+import { Box, Container, Typography } from '@mui/material'
+import InRoomOperations from './InRoomOperationList'
 import MediaStreamPanel from './Conference'
 import { useLocation } from 'react-router-dom'
 import Conference from './Conference'
 import RoomPreview from './RoomPreview'
+import Header from './Header'
 
 const Home = () => {
     const [activeRooms, setActiveRooms] = useState([])
@@ -16,6 +17,7 @@ const Home = () => {
     const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
     useEffect(() => {
         const user = location.state.user
+        console.log('user: ', user)
         setUser(user)
         fetchAllActiveRooms()
     }, [])
@@ -41,15 +43,14 @@ const Home = () => {
         <Container>
             {
                 user && (
-                    <Box component={"div"} style={{ textAlign: 'right' }}><strong>{user.username}</strong></Box>
+                    <Header user={user}></Header>
                 )
             }
-            <Box component={"div"} style={{ textAlign: 'left' }}><strong>Active</strong></Box>
             <CreateRoomForm user={user} onRoomCreated={handleRoomCreated}></CreateRoomForm>
             {
                 activeRooms.map(room =>
-                        <RoomPreview room={room} user={user}>
-                        </RoomPreview>
+                    <RoomPreview room={room} user={user}>
+                    </RoomPreview>
                 )
             }
         </Container>

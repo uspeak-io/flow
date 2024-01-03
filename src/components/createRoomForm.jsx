@@ -13,6 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import AxiosInstance from "../conf/axiosConfig";
+import { Container } from "@mui/material";
 
 const CreateRoomForm = ({user, onRoomCreated}) => {
     const [open, setOpen] = useState(false)
@@ -58,7 +59,7 @@ const CreateRoomForm = ({user, onRoomCreated}) => {
     }
 
     return (
-        <React.Fragment>
+        <Container sx={{display: 'flex', justifyContent: 'flex-end'}}>
             <Button variant="outlined" onClick={handleClickOpen}>
                 Create room
             </Button>
@@ -95,7 +96,7 @@ const CreateRoomForm = ({user, onRoomCreated}) => {
                     <Button onClick={handleSubmitCreateRoom}>Create</Button>
                 </DialogActions>
             </Dialog>
-        </React.Fragment>
+        </Container>
     )
 }
 

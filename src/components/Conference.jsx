@@ -1,4 +1,4 @@
-import { Container, TextField } from "@mui/material";
+import { Container, Typography } from "@mui/material";
 import { Client, LocalStream, RemoteStream } from "ion-sdk-js"
 import { IonSFUJSONRPCSignal } from 'ion-sdk-js/lib/signal/json-rpc-impl';
 import { useState, useEffect, useRef } from "react";
@@ -44,8 +44,7 @@ const Conference = ({user, room}) => {
         // };
     }, []);
     return (
-        <Container key={"video-container"}>
-            <TextField value={"Remote participants"}></TextField>
+        <Container key={"remote-stream-container"}>
             {
                 streams.map((s, i) => {
                     return (<VideoView
