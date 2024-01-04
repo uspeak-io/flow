@@ -1,65 +1,126 @@
 import { Container, Typography } from "@mui/material";
-import { Client, LocalStream, RemoteStream } from "ion-sdk-js"
-import { IonSFUJSONRPCSignal } from 'ion-sdk-js/lib/signal/json-rpc-impl';
-import { useState, useEffect, useRef } from "react";
+import { Client, LocalStream, RemoteStream } from "ion-sdk-js";
+import { IonSFUJSONRPCSignal } from "ion-sdk-js/lib/signal/json-rpc-impl";
+import {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import VideoView from "./VideoView";
 import { Label } from "@mui/icons-material";
-const Conference = ({user, room}) => {
-    const [streams, setStreams] = useState([])
-    const [localStream, setLocalStream] = useState({ stream: null })
-    const [audioOn, setAudioOn] = useState(false)
-    const [videoOn, setVideoOn] = useState(false)
-    
-    useEffect(() => {
-        const config = {
-            codec: 'vp8',
-            iceServers: [
-                {
-                    "urls": "stun:stun.l.google.com:19302",
-                }
-            ]
+const Conference = forwardRef((props, ref) => {
+  const { room, user, rtcClient } = props;
+  const [streams, setStreams] = useState([]);
+  const [localStream, setLocalStream] = useState({ stream: null });
+  const [audioOn, setAudioOn] = useState(false);
+  const [videoOn, setVideoOn] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    handleLocalStream: (enabled) => doHandleLocalStream(enabled),
+    handleRemoteStream: () => doHandleRemoteStream(),
+    toggleAudio: () => doToggleAudio(),
+    toggleVideo: () => doToggleVideo(),
+    handleParticipantLeave: (userId) =>
+      doHandleParticipantLeave(userId),
+  }));
+
+  useEffect(() => {
+    console.log("current client: " + rtcClient);
+    doHandleRemoteStream()
+  }, []);
+
+  const doToggleAudio = () => {
+    setAudioOn(!audioOn);
+    console.log("current audio: ", audioOn);
+  };
+
+  const doToggleVideo = () => {
+    setVideoOn(!videoOn);
+    console.log("current video: ", videoOn);
+  };
+
+  const doHandleParticipantLeave = (userId) => {
+    console.log("user leave: ", userId);
+  };
+
+  const doHandleLocalStream = async (enabled) => {
+    if (enabled) {
+      await LocalStream.getUserMedia({
+        audio: true,
+        video: true,
+        codec: "VP8",
+      })
+        .then((stream) => {
+          rtcClient.publish(stream);
+          localStream.stream = stream;
+          setLocalStream(localStream);
+        })
+        .catch((e) => {
+          console.error("error while publishing stream: I", e);
+        });
+    } else {
+      if (localStream.stream) {
+        unpublish(localStream.stream);
+        localStream.stream = null;
+        setLocalStream(localStream);
+      }
+    }
+  };
+
+  const doHandleRemoteStream = () => {
+    rtcClient.ontrack = (track, stream) => {
+      console.log("got remote track: ", track.id, " stream: ", stream.id);
+      if (track.kind === "video") {
+        track.onunmute = () => {
+          let found = false;
+          const filtered = streams.filter((e) => e.id == track.id);
+          found = filtered.length >= 1;
+          if (!found) {
+            streams.push({ id: stream.id, stream });
+            setStreams([...streams]);
+            stream.onremovetrack = () => {
+              const _streams = streams.filter((item) => item.id !== stream.id);
+              setStreams([..._streams]);
+            };
+          }
         };
-        console.log('establishing webrtc connection for room: ', room.id)
-        const url = "ws://localhost:7001/ws";
-        const signal = new IonSFUJSONRPCSignal(url);
-        const client = new Client(signal, config);
+      }
+    };
+  };
 
-        signal.onopen = () => client.join(room.id);
+  const unpublish = async (stream) => {
+    console.log("stream.unpublish stream=", stream);
+    if (stream) {
+      await stopMediaStream(stream);
+    }
+  };
 
-        client.ontrack = (track, stream) => {
-            console.log('got track ', track, "for stream: ", stream);
-            if (track.kind === 'video') {
-                track.onunmute = () => {
-                    const videoStream = {
-                        stream: stream
-                    }
-                    setStreams([...streams, videoStream])
-                }
-            }
-        };
+  const stopMediaStream = async (stream) => {
+    console.log("stopMediaStream stream=", stream);
+    let tracks = stream.getTracks();
+    for (let i = 0, len = tracks.length; i < len; i++) {
+      await tracks[i].stop();
+      console.log("stopMediaStream track=", tracks[i]);
+    }
+  };
 
-        // return () => {
-        //     // Cleanup when component unmounts
-        //     client.close();
-        // };
-    }, []);
-    return (
-        <Container key={"remote-stream-container"}>
-            {
-                streams.map((s, i) => {
-                    return (<VideoView
-                        key={Math.random()}
-                        id={Math.random()}
-                        muted={false}
-                        stream={s.stream}
-                        index={i}
-                    >
-                    </VideoView>)
-                })
-            }
-        </Container>
-    )
+  return (
+    <Container key={"remote-stream-container"}>
+      {streams.map((s, i) => {
+        return (
+          <VideoView
+            key={Math.random()}
+            id={Math.random()}
+            muted={false}
+            stream={s.stream}
+            index={i}
+          ></VideoView>
+        );
+      })}
+    </Container>
+  );
+});
 
-}
-
-export default Conference
+export default Conference;

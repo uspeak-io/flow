@@ -5,9 +5,9 @@ const VideoView = (props) => {
     const videoRef = useRef(null)
     useEffect(() => {
         videoRef.current.srcObject = props.stream
-        return () => {
-            videoRef.current.srcObject = null
-        }
+        // return () => {
+        //     videoRef.current.srcObject = null
+        // }
     }, [])
     const {id, stream, muted} = props
     return (

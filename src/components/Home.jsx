@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, forwardRef } from 'react'
 import AxiosInstance from '../conf/axiosConfig'
 import Room from './Room'
 import CreateRoomForm from './CreateRoomForm'
 import { Box, Container, Typography } from '@mui/material'
-import InRoomOperations from './InRoomOperationList'
 import MediaStreamPanel from './Conference'
 import { useLocation } from 'react-router-dom'
 import Conference from './Conference'
@@ -11,10 +10,11 @@ import RoomPreview from './RoomPreview'
 import Header from './Header'
 
 const Home = () => {
-    const [activeRooms, setActiveRooms] = useState([])
-    const [user, setUser] = useState(null)
     const location = useLocation()
     const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
+    const [activeRooms, setActiveRooms] = useState([])
+    const [user, setUser] = useState(null)
+
     useEffect(() => {
         const user = location.state.user
         console.log('user: ', user)
