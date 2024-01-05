@@ -1,46 +1,73 @@
-import React from "react";
-import { useState, useEffect, useRef } from "react";
-import AxiosInstance from "../conf/axiosConfig";
-import { Button, Typography, Container, Card } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
+import { Card, Container, Typography } from "@mui/material";
 import Conference from "./Conference";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import InRoomToolbar from "./InRoomToolbar";
-import { IonSFUJSONRPCSignal } from "ion-sdk-js/lib/signal/json-rpc-impl";
-import { Client, LocalStream, RemoteStream } from "ion-sdk-js";
+import * as Ion from "ion-sdk-js/lib/connector";
+import Header from "./Header";
+import { Client } from "@stomp/stompjs";
 
 const Room = (props) => {
-  console.log('room info: ', useLocation().state)
-  const { room, user, participants } = useLocation().state;
-  const [activeParticipants, setActiveParticipants] = useState([]);
-  const [rtcClient, setRtcClient] = useState(null);
+  const { roomInfo, user, participants } = useLocation().state;
+  const [peers, setPeers] = useState([]);
+  const [connector, setConnector] = useState(null);
+  const [rtc, setRtc] = useState(null);
   const roomId = useParams();
   const conferenceRef = useRef();
-  const isPageClosing = useRef(false)
+  const isPageClosing = useRef(false);
   useEffect(() => {
-    // Add event listener when the component mounts
-    
-  }, []);
-
-  useEffect(() => {
-    const ps = participants;
-    setActiveParticipants(ps);
-    joinRtc(room.id);
+    setPeers(peers.length != 0 ? peers : participants);
+    setupWebsocketClient();
+    joinRtc(roomInfo.id);
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (isPageClosing.current) {
-        onParticipantLeave(user.id)  
+        onParticipantLeave(user.id);
       }
     };
-  }, []);
+  }, [peers]);
+
+  const setupWebsocketClient = () => {
+    const client = new Client({
+      brokerURL: "ws://localhost:8090/room",
+      onConnect: () => {
+        client.subscribe(`/topic/room/${roomInfo.id}`, (message) => {
+          console.log("receive room ws message: ", `${message.body}`);
+          const body = JSON.parse(message.body);
+          const peer = body.payload;
+          switch (body.command) {
+            case "join": {
+              const found = participants.filter((p) => p.userId == peer.userId);
+              if (found.length == 0) {
+                const _peers = [...participants, peer];
+                setPeers(_peers);
+              }
+              break;
+            }
+            case "leave": {
+              const _peers = peers.filter((p) => p.userId !== peer.userId);
+              setPeers(_peers);
+              break;
+            }
+            default: {
+              break;
+            }
+          }
+        });
+      },
+    });
+    client.activate();
+  };
 
   const onParticipantLeave = (userId) => {
     const ps = participants.filter((e) => e.userId !== userId);
-    setActiveParticipants([...ps]);
+    setPeers(ps);
     conferenceRef.current.handleParticipantLeave(userId);
   };
 
-  const joinRtc = (roomId) => {
+  const joinRtc = async (roomId) => {
+    console.log("user: ", user.id, " joining room: ", roomInfo.id);
     const config = {
       codec: "vp8",
       iceServers: [
@@ -49,34 +76,50 @@ const Room = (props) => {
         },
       ],
     };
-    console.log("establishing webrtc connection for room: ", roomId);
-    const url = "ws://localhost:7001/ws";
-    const signal = new IonSFUJSONRPCSignal(url);
-    const client = new Client(signal, config);
-    signal.onopen = () => client.join(roomId);
-    setRtcClient(client);
-  }
+    const url = "http://localhost:50051";
+    const connector = new Ion.Connector(url, "token");
+    setConnector(connector);
+    const rtc = new Ion.RTC(connector, config);
+    setRtc(rtc);
+    rtc.ondatachannel = ({ channel }) => {
+      console.log("[ondatachannel] channel=", channel);
+      channel.onmessage = ({ data }) => {
+        console.log("[ondatachannel] channel onmessage =", data);
+      };
+    };
+    rtc
+      .join(roomInfo.id, user.id.toString())
+      .then((result) => {
+        console.log("rtc join success", result);
+      })
+      .catch((error) => {
+        console.log("rtc join error: ", error);
+      });
+  };
 
-
-  const handleBeforeUnload = evt => {
-    isPageClosing.current = true
-  }
+  const handleBeforeUnload = (evt) => {
+    isPageClosing.current = true;
+  };
 
   return (
     <Container>
-      { room && (
+      <Header user={user}></Header>
+      {roomInfo && (
         <Container>
-          <Typography fontWeight="bold">Room ID: {room.id}</Typography>
-          <Typography fontWeight="bold">Room topic: {room.topic}</Typography>
-          <Typography fontWeight="bold">Size: {room.size}</Typography>
+          <Typography fontWeight="bold">Room ID: {roomInfo.id}</Typography>
+          <Typography fontWeight="bold">
+            Room topic: {roomInfo.topic}
+          </Typography>
+          <Typography fontWeight="bold">Size: {roomInfo.size}</Typography>
           <Typography fontWeight="bold">
             Participants ({participants.length}):
           </Typography>
-          {activeParticipants &&
-            activeParticipants.map((participant) => {
+          {peers &&
+            peers.map((participant) => {
               return (
                 <Card key={participant.userId}>
                   <Typography>User id: {participant.userId}</Typography>
+                  <Typography>Display name: {participant.displayName}</Typography>
                   <Typography>
                     Is host: {participant.isHost.toString()}
                   </Typography>
@@ -85,18 +128,19 @@ const Room = (props) => {
               );
             })}
           <InRoomToolbar
-            room={room}
+            room={roomInfo}
             user={user}
             onParticipantLeave={onParticipantLeave}
             conferenceRef={conferenceRef}
           ></InRoomToolbar>
           <Typography>Remote streams: </Typography>
-          { rtcClient && (
+          {rtc && (
             <Conference
-              room={room}
+              peers={peers}
+              roomInfo={roomInfo}
               user={user}
               ref={conferenceRef}
-              rtcClient={rtcClient}
+              rtc={rtc}
             ></Conference>
           )}
         </Container>

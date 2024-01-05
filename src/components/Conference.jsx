@@ -11,9 +11,11 @@ import {
 import VideoView from "./VideoView";
 import { Label } from "@mui/icons-material";
 const Conference = forwardRef((props, ref) => {
-  const { room, user, rtcClient } = props;
+  const STREAM_KIND_LOCAL = "local";
+  const STREAM_KIND_REMOTE = "remote";
+  const { roomInfo, user, rtc, peers, onAddedStream } = props;
+  const [streamToPeer, setStreamToPeer] = useState({});
   const [streams, setStreams] = useState([]);
-  const [localStream, setLocalStream] = useState({ stream: null });
   const [audioOn, setAudioOn] = useState(false);
   const [videoOn, setVideoOn] = useState(false);
 
@@ -22,27 +24,34 @@ const Conference = forwardRef((props, ref) => {
     handleRemoteStream: () => doHandleRemoteStream(),
     toggleAudio: () => doToggleAudio(),
     toggleVideo: () => doToggleVideo(),
-    handleParticipantLeave: (userId) =>
-      doHandleParticipantLeave(userId),
+    handleParticipantLeave: (userId) => doHandleParticipantLeave(userId),
   }));
 
   useEffect(() => {
-    console.log("current client: " + rtcClient);
-    doHandleRemoteStream()
-  }, []);
+    doHandleRemoteStream();
+  }, [rtc, streams]);
 
   const doToggleAudio = () => {
     setAudioOn(!audioOn);
-    console.log("current audio: ", audioOn);
   };
 
   const doToggleVideo = () => {
     setVideoOn(!videoOn);
-    console.log("current video: ", videoOn);
   };
 
   const doHandleParticipantLeave = (userId) => {
     console.log("user leave: ", userId);
+    // const removedStreams = streams.filter(s => s.user.id == userId)
+    // removedStreams.forEach(s => {
+    //     unpublish(s)
+    // })
+  };
+
+  const getParticipantInfo = (uid) => {
+    const result = peers.filter((peer) => {
+      return peer.userId == uid;
+    });
+    return result[0];
   };
 
   const doHandleLocalStream = async (enabled) => {
@@ -53,32 +62,95 @@ const Conference = forwardRef((props, ref) => {
         codec: "VP8",
       })
         .then((stream) => {
-          rtcClient.publish(stream);
-          localStream.stream = stream;
-          setLocalStream(localStream);
+          rtc.publish(stream);
+          const localStream = createLocalStream(stream);
+          const _streams = [...streams, localStream];
+          console.log("added new local stream: ", localStream);
+          setStreams(_streams);
+          const stp = {
+            ...streamToPeer,
+            [stream.id]: getParticipantInfo(user.id),
+          };
+          console.log("stp: ", stp);
+          setStreamToPeer(stp);
         })
         .catch((e) => {
-          console.error("error while publishing stream: I", e);
+          console.error("error while publishing stream: ", e);
         });
     } else {
-      if (localStream.stream) {
-        unpublish(localStream.stream);
-        localStream.stream = null;
-        setLocalStream(localStream);
+      const localStream = getLocalStream();
+      if (localStream && localStream.stream) {
+        unpublishStream(localStream)
       }
     }
   };
 
+  const unpublishStream = (stream) => {
+    setStreamToPeer((prev) => {
+      const updated = { ...prev };
+      if (updated[stream.stream.id]) {
+        delete updated[stream.stream.id];
+        return updated;
+      }
+      return prev;
+    });
+    unpublish(stream.stream);
+    stream.stream = null;
+    const _streams = streams.filter((e) => e.kind !== STREAM_KIND_LOCAL);
+    const updatedStreams = [..._streams, stream];
+    setStreams(updatedStreams);
+  };
+
+  const createLocalStream = (stream) => {
+    const _stream = {
+      stream: stream,
+      kind: STREAM_KIND_LOCAL,
+      id: stream.id,
+      user: user,
+    };
+    return _stream;
+  };
+
+  const getLocalStream = () => {
+    return streams.filter((stream) => stream.kind == STREAM_KIND_LOCAL)[0];
+  };
+
   const doHandleRemoteStream = () => {
-    rtcClient.ontrack = (track, stream) => {
+    rtc.ontrackevent = (ev) => {
+      console.log(
+        "[ontrackevent]: \nuid = ",
+        ev.uid,
+        " \nstate = ",
+        ev.state,
+        ", \ntracks = ",
+        JSON.stringify(ev.tracks)
+      );
+
+      ev.tracks.forEach((track) => {
+        if (!streamToPeer[track.stream_id] && track.kind === "video") {
+          const peers = {
+            ...streamToPeer,
+            [track.stream_id]: getParticipantInfo(ev.uid),
+          };
+          setStreamToPeer(peers);
+        }
+      });
+    };
+
+    rtc.ontrack = (track, stream) => {
       console.log("got remote track: ", track.id, " stream: ", stream.id);
       if (track.kind === "video") {
         track.onunmute = () => {
           let found = false;
           const filtered = streams.filter((e) => e.id == track.id);
-          found = filtered.length >= 1;
+          found = false
           if (!found) {
-            streams.push({ id: stream.id, stream });
+            const remoteStream = {
+              id: stream.id,
+              kind: STREAM_KIND_REMOTE,
+              stream: stream,
+            };
+            streams.push(remoteStream);
             setStreams([...streams]);
             stream.onremovetrack = () => {
               const _streams = streams.filter((item) => item.id !== stream.id);
@@ -111,10 +183,13 @@ const Conference = forwardRef((props, ref) => {
       {streams.map((s, i) => {
         return (
           <VideoView
+            peers={peers}
+            streamToPeer={streamToPeer}
+            participant={streamToPeer[s.id]}
             key={Math.random()}
             id={Math.random()}
             muted={false}
-            stream={s.stream}
+            stream={s}
             index={i}
           ></VideoView>
         );
