@@ -49,7 +49,11 @@ const Home = () => {
             <CreateRoomForm user={user} onRoomCreated={handleRoomCreated}></CreateRoomForm>
             {
                 activeRooms.map(room =>
-                    <RoomPreview room={room} user={user}>
+                    <RoomPreview 
+                        room={room} 
+                        user={user}
+                        key={room.id}
+                    >
                     </RoomPreview>
                 )
             }

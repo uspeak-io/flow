@@ -29,7 +29,7 @@ const Conference = forwardRef((props, ref) => {
 
   useEffect(() => {
     doHandleRemoteStream();
-  }, [rtc, streams]);
+  }, []);
 
   const doToggleAudio = () => {
     setAudioOn(!audioOn);

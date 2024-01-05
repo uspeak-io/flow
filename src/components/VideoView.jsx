@@ -1,6 +1,5 @@
-import { Container, Typography } from "@mui/material";
+import { Card, CardMedia, Container, Typography } from "@mui/material";
 import { useEffect, useRef } from "react";
-
 const VideoView = (props) => {
   const { user, id, stream, participant, peers, streamToPeer } = props;
   const videoRef = useRef(null);
@@ -11,17 +10,20 @@ const VideoView = (props) => {
     videoRef.current.srcObject = props.stream.stream;
   }, []);
   return (
-    <Container>
-      {/* <Typography>{participant.userId}</Typography> */}
+    <Card variant="outlined" sx={{maxWidth: '210px'}}>
+      <Typography>{participant.userId}</Typography>
       <video
+        className="small-video-view"
         key={id}
         autoPlay={true}
         playsInline
         muted={true}
         id={id}
+        width={"100%"}
+        height={"130px"}
         ref={videoRef}
       ></video>
-    </Container>
+    </Card>
   );
 };
 
