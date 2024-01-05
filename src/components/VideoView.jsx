@@ -4,13 +4,17 @@ const VideoView = (props) => {
   const { user, id, stream, participant, peers, streamToPeer } = props;
   const videoRef = useRef(null);
   useEffect(() => {
-    console.log('peers: ', peers)
-    console.log('stream to peer: ', streamToPeer)
-    console.log('participant: ', participant)
-    videoRef.current.srcObject = props.stream.stream;
-  }, []);
+    console.log("peers: ", peers);
+    console.log("stream to peer: ", streamToPeer);
+    console.log("participant: ", participant);
+    if (participant && props.stream && props.stream.stream) {
+      if (!videoRef.current.srcObject) {
+        videoRef.current.srcObject = props.stream.stream;
+      }
+    }
+  }, [participant, props.stream, peers, streamToPeer]);
   return (
-    <Card variant="outlined" sx={{maxWidth: '210px'}}>
+    <Card variant="outlined" sx={{ maxWidth: "210px" }}>
       <Typography>{participant.userId}</Typography>
       <video
         className="small-video-view"

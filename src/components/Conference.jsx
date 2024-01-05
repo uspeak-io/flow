@@ -9,7 +9,6 @@ import {
   useImperativeHandle,
 } from "react";
 import VideoView from "./VideoView";
-import { Label } from "@mui/icons-material";
 const Conference = forwardRef((props, ref) => {
   const STREAM_KIND_LOCAL = "local";
   const STREAM_KIND_REMOTE = "remote";
@@ -29,7 +28,10 @@ const Conference = forwardRef((props, ref) => {
 
   useEffect(() => {
     doHandleRemoteStream();
-  }, []);
+  }, [rtc, streamToPeer]);
+
+
+  console.log('442 participants: ', peers)
 
   const doToggleAudio = () => {
     setAudioOn(!audioOn);
@@ -41,10 +43,6 @@ const Conference = forwardRef((props, ref) => {
 
   const doHandleParticipantLeave = (userId) => {
     console.log("user leave: ", userId);
-    // const removedStreams = streams.filter(s => s.user.id == userId)
-    // removedStreams.forEach(s => {
-    //     unpublish(s)
-    // })
   };
 
   const getParticipantInfo = (uid) => {
@@ -65,13 +63,11 @@ const Conference = forwardRef((props, ref) => {
           rtc.publish(stream);
           const localStream = createLocalStream(stream);
           const _streams = [...streams, localStream];
-          console.log("added new local stream: ", localStream);
           setStreams(_streams);
           const stp = {
             ...streamToPeer,
             [stream.id]: getParticipantInfo(user.id),
           };
-          console.log("stp: ", stp);
           setStreamToPeer(stp);
         })
         .catch((e) => {
@@ -128,11 +124,11 @@ const Conference = forwardRef((props, ref) => {
 
       ev.tracks.forEach((track) => {
         if (!streamToPeer[track.stream_id] && track.kind === "video") {
-          const peers = {
+          const ps = {
             ...streamToPeer,
             [track.stream_id]: getParticipantInfo(ev.uid),
           };
-          setStreamToPeer(peers);
+          setStreamToPeer(ps);
         }
       });
     };

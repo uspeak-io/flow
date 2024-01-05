@@ -15,8 +15,9 @@ const Room = (props) => {
   const roomId = useParams();
   const conferenceRef = useRef();
   const isPageClosing = useRef(false);
+    
   useEffect(() => {
-    setPeers(peers.length != 0 ? peers : participants);
+    setPeers(participants);
     setupWebsocketClient();
     joinRtc(roomInfo.id);
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -26,7 +27,8 @@ const Room = (props) => {
         onParticipantLeave(user.id);
       }
     };
-  }, [peers]);
+  }, []);
+  console.log('42 participants: ', peers)
 
   const setupWebsocketClient = () => {
     const client = new Client({
@@ -38,6 +40,7 @@ const Room = (props) => {
           const peer = body.payload;
           switch (body.command) {
             case "join": {
+              console.log('participant joining: ', peer)
               const found = participants.filter((p) => p.userId == peer.userId);
               if (found.length == 0) {
                 const _peers = [...participants, peer];
@@ -46,6 +49,7 @@ const Room = (props) => {
               break;
             }
             case "leave": {
+              console.log('participant leaving: ', peer)
               const _peers = peers.filter((p) => p.userId !== peer.userId);
               setPeers(_peers);
               break;

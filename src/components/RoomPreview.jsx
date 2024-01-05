@@ -50,9 +50,7 @@ const RoomPreview = (props) => {
   };
 
   const joinRoom = async (roomId, userId, displayName) => {
-    console.log("user: ", user);
     try {
-      console.log("user: ", user);
       const response = await AxiosInstance.post(`${endpoint}/join`, null, {
         params: {
           roomId: roomId,
