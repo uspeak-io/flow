@@ -6,19 +6,18 @@ import InRoomToolbar from "./InRoomToolbar";
 import * as Ion from "ion-sdk-js/lib/connector";
 import Header from "./Header";
 import { Client } from "@stomp/stompjs";
+import setupWebsocketClient from "./WsClient";
 
 const Room = (props) => {
   const { roomInfo, user, participants } = useLocation().state;
-  const [peers, setPeers] = useState([]);
+  const [peers, setPeers] = useState(participants);
   const [connector, setConnector] = useState(null);
   const [rtc, setRtc] = useState(null);
   const roomId = useParams();
   const conferenceRef = useRef();
   const isPageClosing = useRef(false);
-    
+
   useEffect(() => {
-    setPeers(participants);
-    setupWebsocketClient();
     joinRtc(roomInfo.id);
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
@@ -28,45 +27,42 @@ const Room = (props) => {
       }
     };
   }, []);
-  console.log('42 participants: ', peers)
 
-  const setupWebsocketClient = () => {
-    const client = new Client({
-      brokerURL: "ws://localhost:8090/room",
-      onConnect: () => {
-        client.subscribe(`/topic/room/${roomInfo.id}`, (message) => {
-          console.log("receive room ws message: ", `${message.body}`);
-          const body = JSON.parse(message.body);
-          const peer = body.payload;
-          switch (body.command) {
-            case "join": {
-              console.log('participant joining: ', peer)
-              const found = participants.filter((p) => p.userId == peer.userId);
-              if (found.length == 0) {
-                const _peers = [...participants, peer];
-                setPeers(_peers);
-              }
-              break;
-            }
-            case "leave": {
-              console.log('participant leaving: ', peer)
-              const _peers = peers.filter((p) => p.userId !== peer.userId);
-              setPeers(_peers);
-              break;
-            }
-            default: {
-              break;
-            }
+  console.log("42 participants: ", peers);
+
+  const subscribeWsTopics = (stompClient) => {
+    stompClient.subscribe(`/topic/room/${roomInfo.id}`, (message) => {
+      const body = JSON.parse(message.body);
+      const peer = body.payload;
+      switch (body.command) {
+        case "join": {
+          console.log("participant joining: ", peer);
+          const found = peers.filter((p) => p.userId == peer.userId);
+          if (found.length == 0) {
+            const _peers = [...participants, peer];
+            setPeers(_peers);
           }
-        });
-      },
+          break;
+        }
+        case "leave": {
+          console.log("participant leaving: ", peer);
+          console.log("peer list: ", peers);
+          const _peers = peers.filter((p) => p.userId !== peer.userId);
+          console.log("peers after one peer leave: ", _peers);
+          setPeers([..._peers]);
+          break;
+        }
+        default: {
+          break;
+        }
+      }
     });
-    client.activate();
   };
+  setupWebsocketClient(subscribeWsTopics)
 
   const onParticipantLeave = (userId) => {
-    const ps = participants.filter((e) => e.userId !== userId);
-    setPeers(ps);
+    const ps = peers.filter((e) => e.userId !== userId);
+    setPeers([...ps]);
     conferenceRef.current.handleParticipantLeave(userId);
   };
 
@@ -123,7 +119,9 @@ const Room = (props) => {
               return (
                 <Card key={participant.userId}>
                   <Typography>User id: {participant.userId}</Typography>
-                  <Typography>Display name: {participant.displayName}</Typography>
+                  <Typography>
+                    Display name: {participant.displayName}
+                  </Typography>
                   <Typography>
                     Is host: {participant.isHost.toString()}
                   </Typography>

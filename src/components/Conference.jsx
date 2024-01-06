@@ -28,7 +28,7 @@ const Conference = forwardRef((props, ref) => {
 
   useEffect(() => {
     doHandleRemoteStream();
-  }, [rtc, streamToPeer]);
+  }, [rtc]);
 
 
   console.log('442 participants: ', peers)
