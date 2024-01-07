@@ -7,11 +7,12 @@ const RoomPreview = (props) => {
   const { room, user } = props;
   const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
   const navigate = useNavigate();
-  const [participants, setParticipants] = useState([]);
+  const [participants, setParticipants] = useState(room.participants.participants);
 
   useEffect(() => {
-    setParticipants(room?.participants?.participants);
-  }, [room]);
+    console.log('room preview participants: ', participants)
+    setupWebsocketClient(subscribeWsTopics)
+  }, [])
 
   const subscribeWsTopics = (stompClient) => {
     console.log('stomp client: ', stompClient)
@@ -38,8 +39,6 @@ const RoomPreview = (props) => {
       }
     });
   };
-
-  setupWebsocketClient(subscribeWsTopics)
 
   const joinRoom = async (roomId, userId, displayName) => {
     try {

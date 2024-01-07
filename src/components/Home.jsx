@@ -22,6 +22,7 @@ const Home = () => {
     const user = location.state.user;
     setUser(user);
     fetchAllActiveRooms();
+    setupWebsocketClient(handleRoomBroadcasted)
   }, []);
 
 
@@ -42,12 +43,10 @@ const Home = () => {
         }
     })
   }
-  setupWebsocketClient(handleRoomBroadcasted)
 
 
   const addActiveRoom = (room) => {
     const found = activeRooms.filter(r => r.id === room.id).length >= 1
-    console.log('add new active room: ', room)
     if (!found) {
         const rooms = [...activeRooms, room]
         setActiveRooms(rooms)
@@ -56,10 +55,8 @@ const Home = () => {
 
   const fetchAllActiveRooms = async () => {
     try {
-      console.log("endpoint: ", endpoint);
       const response = await AxiosInstance.get(endpoint + "/");
       const rooms = response.data.payload.rooms.values;
-      console.log("rooms: ", rooms);
       setActiveRooms(rooms);
     } catch (error) {
       console.log("error while fetching active rooms", error);

@@ -45,7 +45,6 @@ const CreateRoomForm = ({user, onRoomCreated}) => {
                 size: size
             })
             const activeRoom = response.data.payload
-            console.log('create room response: ', activeRoom)
             onRoomCreated(activeRoom)
         } catch(error) {
             console.log('fail to create room, ', error)
@@ -54,7 +53,6 @@ const CreateRoomForm = ({user, onRoomCreated}) => {
 
     const handleTopicChange = (event) => {
         const topic = event.target.value
-        console.log('topic: ', topic)
         setTopic(topic)
     }
 

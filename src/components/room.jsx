@@ -11,7 +11,6 @@ import setupWebsocketClient from "./WsClient";
 const Room = (props) => {
   const { roomInfo, user, participants } = useLocation().state;
   const [peers, setPeers] = useState(participants);
-  const [connector, setConnector] = useState(null);
   const [rtc, setRtc] = useState(null);
   const roomId = useParams();
   const conferenceRef = useRef();
@@ -19,16 +18,19 @@ const Room = (props) => {
 
   useEffect(() => {
     joinRtc(roomInfo.id);
+    setupWebsocketClient(subscribeWsTopics);
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (isPageClosing.current) {
-        onParticipantLeave(user.id);
+        // onParticipantLeave(user.id);
       }
     };
   }, []);
 
-  console.log("42 participants: ", peers);
+  useEffect(() => {
+    console.log('use effect peers: ', peers)
+  }, [peers])
 
   const subscribeWsTopics = (stompClient) => {
     stompClient.subscribe(`/topic/room/${roomInfo.id}`, (message) => {
@@ -39,7 +41,8 @@ const Room = (props) => {
           console.log("participant joining: ", peer);
           const found = peers.filter((p) => p.userId == peer.userId);
           if (found.length == 0) {
-            const _peers = [...participants, peer];
+            const _peers = [...peers, peer];
+            console.log("participant list: ", _peers);
             setPeers(_peers);
           }
           break;
@@ -58,7 +61,6 @@ const Room = (props) => {
       }
     });
   };
-  setupWebsocketClient(subscribeWsTopics)
 
   const onParticipantLeave = (userId) => {
     const ps = peers.filter((e) => e.userId !== userId);
@@ -67,7 +69,6 @@ const Room = (props) => {
   };
 
   const joinRtc = async (roomId) => {
-    console.log("user: ", user.id, " joining room: ", roomInfo.id);
     const config = {
       codec: "vp8",
       iceServers: [
@@ -78,7 +79,6 @@ const Room = (props) => {
     };
     const url = "http://localhost:50051";
     const connector = new Ion.Connector(url, "token");
-    setConnector(connector);
     const rtc = new Ion.RTC(connector, config);
     setRtc(rtc);
     rtc.ondatachannel = ({ channel }) => {
@@ -115,17 +115,13 @@ const Room = (props) => {
             Participants ({participants.length}):
           </Typography>
           {peers &&
-            peers.map((participant) => {
+            peers.map((p) => {
               return (
-                <Card key={participant.userId}>
-                  <Typography>User id: {participant.userId}</Typography>
-                  <Typography>
-                    Display name: {participant.displayName}
-                  </Typography>
-                  <Typography>
-                    Is host: {participant.isHost.toString()}
-                  </Typography>
-                  <Typography>Joined at: {participant.joinedAt}</Typography>
+                <Card key={p.userId}>
+                  <Typography>User id: {p.userId}</Typography>
+                  <Typography>Display name: {p.displayName}</Typography>
+                  <Typography>Is host: {p.isHost.toString()}</Typography>
+                  <Typography>Joined at: {p.joinedAt}</Typography>
                 </Card>
               );
             })}

@@ -16,6 +16,12 @@ const Login = () => {
     })
   };
 
+  const handleKeyDown = (evt) => {
+    if (evt.key === 'Enter') {
+      handleLogin()
+    }
+  }
+
   return (
     <Container component="main" maxWidth="xs">
       <Box
@@ -44,6 +50,7 @@ const Login = () => {
             autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
           <Button
             fullWidth

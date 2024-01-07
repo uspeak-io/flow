@@ -1,12 +1,15 @@
 import { Client } from "@stomp/stompjs";
 
+let stompClient;
 const setupWebsocketClient = (onConnectCallback) => {
-  const stompClient = new Client({
-    brokerURL: "ws://localhost:8090/ws",
-    reconnectDelay: 5000,
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
-  });
+  // if (!stompClient) {
+    const stompClient = new Client({
+      brokerURL: "ws://localhost:8090/ws",
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+  // }
 
   stompClient.onConnect = (frame) => {
     console.log("STOMP connection established", frame);

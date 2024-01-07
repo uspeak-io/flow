@@ -12,7 +12,7 @@ import VideoView from "./VideoView";
 const Conference = forwardRef((props, ref) => {
   const STREAM_KIND_LOCAL = "local";
   const STREAM_KIND_REMOTE = "remote";
-  const { roomInfo, user, rtc, peers, onAddedStream } = props;
+  const { user, rtc, peers } = props;
   const [streamToPeer, setStreamToPeer] = useState({});
   const [streams, setStreams] = useState([]);
   const [audioOn, setAudioOn] = useState(false);
@@ -27,11 +27,12 @@ const Conference = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
+    console.log('list peer has changed: ', peers)
+  }, [peers]);
+
+  useEffect(() => {
     doHandleRemoteStream();
-  }, [rtc]);
-
-
-  console.log('442 participants: ', peers)
+  }, []);
 
   const doToggleAudio = () => {
     setAudioOn(!audioOn);
@@ -46,6 +47,7 @@ const Conference = forwardRef((props, ref) => {
   };
 
   const getParticipantInfo = (uid) => {
+    console.log('--------------- peers: ', peers)
     const result = peers.filter((peer) => {
       return peer.userId == uid;
     });
@@ -68,6 +70,8 @@ const Conference = forwardRef((props, ref) => {
             ...streamToPeer,
             [stream.id]: getParticipantInfo(user.id),
           };
+          console.log('peer length: ', peers.length)
+          console.log('stp: ', stp)
           setStreamToPeer(stp);
         })
         .catch((e) => {
@@ -76,7 +80,7 @@ const Conference = forwardRef((props, ref) => {
     } else {
       const localStream = getLocalStream();
       if (localStream && localStream.stream) {
-        unpublishStream(localStream)
+        unpublishStream(localStream);
       }
     }
   };
@@ -121,16 +125,37 @@ const Conference = forwardRef((props, ref) => {
         ", \ntracks = ",
         JSON.stringify(ev.tracks)
       );
-
+      // if (ev.state == 0) {
+      // join
       ev.tracks.forEach((track) => {
         if (!streamToPeer[track.stream_id] && track.kind === "video") {
+          const participant = getParticipantInfo(ev.uid);
+          console.log("all peers: ", peers);
+          console.log("new participant from conference: ", participant);
           const ps = {
             ...streamToPeer,
-            [track.stream_id]: getParticipantInfo(ev.uid),
+            [track.stream_id]: participant,
           };
           setStreamToPeer(ps);
         }
       });
+      if (ev.state == 2) {
+        const track = ev.tracks.filter((track) => track.kind === "video")[0];
+        if (track) {
+          const _streams = streams.filter((s) => s.id !== track.stream_id);
+          console.log("streams left: ", _streams);
+          setStreams([..._streams]);
+        }
+      }
+      // } else if (ev.state == 2) {
+      //   // leave
+      //   setStreamToPeer(
+      //     Object.assign(
+      //       {},
+      //       Object.values(streamToPeer).filter((s) => s.id !== track.stream_id)
+      //     )
+      //   );
+      // }
     };
 
     rtc.ontrack = (track, stream) => {
@@ -139,15 +164,15 @@ const Conference = forwardRef((props, ref) => {
         track.onunmute = () => {
           let found = false;
           const filtered = streams.filter((e) => e.id == track.id);
-          found = false
           if (!found) {
             const remoteStream = {
               id: stream.id,
               kind: STREAM_KIND_REMOTE,
               stream: stream,
             };
-            streams.push(remoteStream);
-            setStreams([...streams]);
+            const _streams = [...streams, remoteStream]
+            console.log('new streams now', _streams)
+            setStreams(_streams); 
             stream.onremovetrack = () => {
               const _streams = streams.filter((item) => item.id !== stream.id);
               setStreams([..._streams]);
@@ -180,8 +205,8 @@ const Conference = forwardRef((props, ref) => {
         return (
           <VideoView
             peers={peers}
-            streamToPeer={streamToPeer}
-            participant={streamToPeer[s.id]}
+            // streamToPeer={streamToPeer}
+            // participant={streamToPeer[s.id]}
             key={Math.random()}
             id={Math.random()}
             muted={false}
