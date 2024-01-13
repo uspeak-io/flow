@@ -47,7 +47,6 @@ const Conference = forwardRef((props, ref) => {
   };
 
   const getParticipantInfo = (uid) => {
-    console.log('--------------- peers: ', peers)
     const result = peers.filter((peer) => {
       return peer.userId == uid;
     });
@@ -70,8 +69,6 @@ const Conference = forwardRef((props, ref) => {
             ...streamToPeer,
             [stream.id]: getParticipantInfo(user.id),
           };
-          console.log('peer length: ', peers.length)
-          console.log('stp: ', stp)
           setStreamToPeer(stp);
         })
         .catch((e) => {

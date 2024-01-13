@@ -48,7 +48,7 @@ const Home = () => {
   const addActiveRoom = (room) => {
     const found = activeRooms.filter(r => r.id === room.id).length >= 1
     if (!found) {
-        const rooms = [...activeRooms, room]
+        const rooms = [room, ...activeRooms]
         setActiveRooms(rooms)
     }
   }
@@ -57,15 +57,36 @@ const Home = () => {
     try {
       const response = await AxiosInstance.get(endpoint + "/");
       const rooms = response.data.payload.rooms.values;
-      setActiveRooms(rooms);
+      const sorted = getRoomsSorted(rooms)
+      setActiveRooms(sorted);
     } catch (error) {
       console.log("error while fetching active rooms", error);
     }
   };
 
   const handleRoomCreated = (newRoom) => {
-    setActiveRooms([...activeRooms, newRoom]);
-  };
+    setActiveRooms([newRoom, ...activeRooms]);
+  }
+
+  const getRoomsSorted = (activeRooms) => {
+    const currentUserRoom = activeRooms.filter(room => {
+      const exist = room.participants.participants.filter(p => {
+        return p.userId == user.id
+      })
+      return exist.length >= 1
+    })
+    let activeRoomWithoutUserRoom = activeRooms;
+    if (currentUserRoom.length != 0) {
+      for(let i = 0; i < activeRoomWithoutUserRoom.length; i++) {
+        for(let j = 0; j < currentUserRoom.length; j++) {
+          if (activeRoomWithoutUserRoom[i].id == currentUserRoom[j].id) {
+            activeRoomWithoutUserRoom.splice(i, 1)
+          }
+        }
+      }
+    }
+    return [...currentUserRoom, ...activeRoomWithoutUserRoom]
+  }
 
   return (
     <Container>
