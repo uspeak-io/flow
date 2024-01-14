@@ -27,7 +27,11 @@ const Conference = forwardRef((props, ref) => {
   }));
 
   useEffect(() => {
-    console.log('list peer has changed: ', peers)
+    console.log("total stream to peers: ", streamToPeer);
+  }, [streamToPeer]);
+
+  useEffect(() => {
+    console.log("list peer has changed: ", peers);
   }, [peers]);
 
   useEffect(() => {
@@ -127,8 +131,6 @@ const Conference = forwardRef((props, ref) => {
       ev.tracks.forEach((track) => {
         if (!streamToPeer[track.stream_id] && track.kind === "video") {
           const participant = getParticipantInfo(ev.uid);
-          console.log("all peers: ", peers);
-          console.log("new participant from conference: ", participant);
           const ps = {
             ...streamToPeer,
             [track.stream_id]: participant,
@@ -167,9 +169,9 @@ const Conference = forwardRef((props, ref) => {
               kind: STREAM_KIND_REMOTE,
               stream: stream,
             };
-            const _streams = [...streams, remoteStream]
-            console.log('new streams now', _streams)
-            setStreams(_streams); 
+            const _streams = [...streams, remoteStream];
+            console.log("new streams now", _streams);
+            setStreams(_streams);
             stream.onremovetrack = () => {
               const _streams = streams.filter((item) => item.id !== stream.id);
               setStreams([..._streams]);

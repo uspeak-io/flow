@@ -1,6 +1,5 @@
 import { Client } from "@stomp/stompjs";
 
-let stompClient;
 const setupWebsocketClient = (onConnectCallback) => {
   // if (!stompClient) {
     const stompClient = new Client({
@@ -11,6 +10,7 @@ const setupWebsocketClient = (onConnectCallback) => {
     });
   // }
 
+  stompClient.activate();
   stompClient.onConnect = (frame) => {
     console.log("STOMP connection established", frame);
     onConnectCallback(stompClient);
@@ -19,8 +19,7 @@ const setupWebsocketClient = (onConnectCallback) => {
   stompClient.onStompError = (frame) => {
     console.error("STOMP protocol error", frame);
   };
-
-  stompClient.activate();
+  return stompClient
 };
 
 export default setupWebsocketClient;

@@ -7,7 +7,7 @@ const RoomPreview = (props) => {
   const { room, user } = props;
   const endpoint = `${process.env.REACT_APP_SLIGHT_ROOM_URL}`;
   const navigate = useNavigate();
-  const [participants, setParticipants] = useState(room.participants.participants);
+  const [participants, setParticipants] = useState(!room?.participants?.participants ? [] : room.participants.participants);
 
   useEffect(() => {
     console.log('room preview participants: ', participants)
