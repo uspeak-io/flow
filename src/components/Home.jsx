@@ -20,7 +20,6 @@ const Home = () => {
 
   useEffect(() => {
     const user = location.state.user;
-    console.log("user now: " + JSON.stringify(user));
     setUser(user);
     fetchAllActiveRooms(user);
     setWsClient(setupWebsocketClient(handleRoomBroadcasted));
